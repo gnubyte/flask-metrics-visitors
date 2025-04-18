@@ -12,6 +12,17 @@ A Flask extension for tracking and visualizing visitor metrics.
 - Timezone-aware timestamps
 - Persistent SQLite database storage
 
+## Demo
+
+### Dashboard Overview
+![Dashboard Overview](screenshots/dash1.png)
+
+### Session Analytics
+![Session Analytics](screenshots/dash2.png)
+
+### Detailed Session View
+![Detailed Session View](screenshots/dash3.png)
+
 ## Installation
 
 ```bash
@@ -24,7 +35,7 @@ To build the package locally:
 
 1. Install build dependencies:
 ```bash
-pip install build twine
+pip install twine
 ```
 
 2. Build the package:
