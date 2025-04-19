@@ -23,6 +23,13 @@ A Flask extension for tracking and visualizing visitor metrics.
 ### Detailed Session View
 ![Detailed Session View](screenshots/dash3.png)
 
+## Requirements
+
+- Python 3.7 or higher
+- Flask 2.0.0 or higher
+- Flask-SQLAlchemy 3.0.0 or higher
+- Flask-Login 0.6.0 or higher
+
 ## Installation
 
 ```bash
@@ -38,15 +45,27 @@ To build the package locally:
 pip install twine
 ```
 
-2. Build the package:
+2. Build the package with version increment:
 ```bash
-./build.sh
+# For a patch release (bug fixes)
+./build.sh patch
+
+# For a minor release (new features)
+./build.sh minor
+
+# For a major release (breaking changes)
+./build.sh major
 ```
 
 3. Upload to PyPI (if you have access):
 ```bash
 ./push.sh
 ```
+
+The version number follows semantic versioning (MAJOR.MINOR.PATCH):
+- MAJOR version for incompatible API changes
+- MINOR version for backwards-compatible functionality
+- PATCH version for backwards-compatible bug fixes
 
 ## Setup
 
@@ -56,23 +75,44 @@ You can initialize the extension in two ways:
 
 ```python
 from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
 from flask_metrics_visitors import MetricsVisitors
 
 app = Flask(__name__)
-metrics = MetricsVisitors(app)
+db = SQLAlchemy(app)
+
+# Initialize the metrics extension
+metrics = MetricsVisitors(app, db)
+
+# Get and register the blueprint after initialization
+app.register_blueprint(metrics.get_blueprint())
 ```
 
 ### 2. Factory Pattern (Recommended)
 
 ```python
 from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
 from flask_metrics_visitors import MetricsVisitors
 
+db = SQLAlchemy()
 metrics = MetricsVisitors()
 
 def create_app():
     app = Flask(__name__)
-    metrics.init_app(app)
+    
+    # Configure your app
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///metrics.db'
+    app.config['METRICS_VISITORS_SESSION_LIFETIME'] = 30
+    app.config['METRICS_VISITORS_UPDATE_INTERVAL'] = 30
+    
+    # Initialize extensions
+    db.init_app(app)
+    metrics.init_app(app, db)
+    
+    # Register the blueprint after initialization
+    app.register_blueprint(metrics.get_blueprint())
+    
     return app
 
 app = create_app()
@@ -84,17 +124,11 @@ app = create_app()
 <script src="{{ url_for('metrics_visitors.static', filename='js/session-tracker.js') }}"></script>
 ```
 
-4. Add the metrics blueprint to your application:
-
-```python
-app.register_blueprint(metrics.blueprint)
-```
-
-5. Create the database tables:
+4. Create the database tables:
 
 ```python
 with app.app_context():
-    metrics.db.create_all()
+    db.create_all()
 ```
 
 ## Database Configuration
@@ -102,7 +136,7 @@ with app.app_context():
 The extension uses SQLite for persistent storage of session data. By default, the database is stored in the application's instance folder. You can configure the database path using:
 
 ```python
-app.config['METRICS_VISITORS_DB_PATH'] = 'path/to/your/database.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///path/to/your/database.db'
 ```
 
 ### Database Backup
@@ -148,11 +182,20 @@ The session tracker automatically:
 The following configuration options are available:
 
 ```python
-app.config['METRICS_VISITORS_DB_PATH'] = 'metrics.db'  # SQLite database path
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///metrics.db'  # SQLite database path
 app.config['METRICS_VISITORS_SESSION_LIFETIME'] = 30  # Session lifetime in days
 app.config['METRICS_VISITORS_UPDATE_INTERVAL'] = 30  # Update interval in seconds
 ```
 
+## Package Information
+
+- **Author**: Patrick Hastings
+- **License**: MIT
+- **Python Support**: 3.7, 3.8, 3.9, 3.10
+- **Development Status**: Beta
+- **Framework**: Flask
+- **Environment**: Web Environment
+
 ## License
 
-MIT 
+MIT

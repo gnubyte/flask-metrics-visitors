@@ -7,7 +7,7 @@ def create_visit_model(db):
         user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
         session_id = db.Column(db.String(36), nullable=False)  # For tracking unique visits
         ip = db.Column(db.String(45), nullable=False)
-        country = db.Column(db.String(2), nullable=True)
+        country = db.Column(db.String(100), nullable=True)
         city = db.Column(db.String(100), nullable=True)
         referrer = db.Column(db.String(500), nullable=True)
         user_agent = db.Column(db.String(500), nullable=True)

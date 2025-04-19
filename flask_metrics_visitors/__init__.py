@@ -1,3 +1,5 @@
+__version__ = "0.9.0"
+
 from flask import Blueprint, request, jsonify, render_template, session
 from flask_login import current_user, login_required
 from .models import create_visit_model
@@ -6,6 +8,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func
 import json
 import uuid
+from functools import wraps
 
 class MetricsVisitors:
     def __init__(self, app=None, db=None):
@@ -20,15 +23,31 @@ class MetricsVisitors:
         # Create the Visit model
         self.Visit = create_visit_model(db)
         
+        # Create tables if they don't exist
+        with app.app_context():
+            self.Visit.__table__.create(bind=db.engine, checkfirst=True)
+        
         # Register the blueprint
         bp = Blueprint('metrics_visitors', __name__, 
                       template_folder='templates',
                       static_folder='static',
                       url_prefix='/metrics')
         
+        # Admin required decorator
+        def admin_required(f):
+            @wraps(f)
+            def decorated_function(*args, **kwargs):
+                if not current_user.is_authenticated:
+                    return current_app.login_manager.unauthorized()
+                if not current_user.is_admin:
+                    return current_app.login_manager.unauthorized()
+                return f(*args, **kwargs)
+            return decorated_function
+        
         # Register routes
         @bp.route('/')
         @login_required
+        @admin_required
         def metrics_dashboard():
             # Get visit statistics for the last 24 hours
             visits_24h = self.Visit.query.filter(
@@ -68,6 +87,7 @@ class MetricsVisitors:
 
         @bp.route('/data')
         @login_required
+        @admin_required
         def metrics_data():
             page = request.args.get('page', 1, type=int)
             per_page = 10
@@ -92,6 +112,7 @@ class MetricsVisitors:
 
         @bp.route('/chart-data')
         @login_required
+        @admin_required
         def chart_data():
             now = datetime.utcnow()
             
@@ -143,6 +164,7 @@ class MetricsVisitors:
 
         @bp.route('/update-session', methods=['POST'])
         @login_required
+        @admin_required
         def update_session():
             try:
                 data = request.get_json()
@@ -231,6 +253,7 @@ class MetricsVisitors:
 
         @bp.route('/session-stats')
         @login_required
+        @admin_required
         def session_stats():
             # Get filter parameters
             session_id = request.args.get('session_id')
@@ -333,6 +356,7 @@ class MetricsVisitors:
 
         @bp.route('/session-analytics')
         @login_required
+        @admin_required
         def session_analytics():
             return render_template('metrics/session_analytics.html')
 
